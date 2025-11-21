@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2020", // Good modern JS output
+    "module": "CommonJS", // Stable + works with Node
+    "moduleResolution": "Node", // Correct resolver for Node
+    "rootDir": "./src", // Input folder
+    "outDir": "./dist", // Output folder
+    "strict": true,
+    "esModuleInterop": true, // Allows import x from 'y'
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitAny": true,
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}
