@@ -1,170 +1,173 @@
-import { Account, AccountType, Transaction } from "./types";
+import {
+    Account,
+    ActiveAccount,
+    CreateAccountInput,
+    SafeAccount,
+    Transaction,
+    TransactionType,
+    ACCOUNT_TYPES,
+    TRANSACTION_TYPES,
+} from "./types";
+import { v4 as uuidv4 } from "uuid";
 
 export class BankSystem {
     private accounts: Account[] = [];
-    private lastAccountNumber = 1;
 
-    // Generate Unique Transaction ID
-    private generateTxnId() {
-        return "TXN" + Math.floor(Math.random() * 1000000);
+    // -------------------------
+    // TYPE GUARD – Ensure account is active
+    // -------------------------
+    private ensureActive(acc: Account): ActiveAccount {
+        if (!acc.isActive) throw new Error("Account is deactivated.");
+        return acc as ActiveAccount;
     }
 
-    // Get account (active only)
-    private getAccount(accNo: string): Account {
-        const acc = this.accounts.find(a => a.accountNumber === accNo);
-        if (!acc) throw new Error("Account not found");
-        if (!acc.isActive) throw new Error("Account is inactive");
-        return acc;
-    }
-
+    // -------------------------
     // CREATE ACCOUNT
-    createAccount(customerName: string, type: AccountType, initialBalance = 0): Account {
-        if (initialBalance < 0) throw new Error("Initial balance cannot be negative");
+    // -------------------------
+    async createAccount(input: CreateAccountInput): Promise<SafeAccount> {
+        const { customerName, accountType, initialDeposit } = input;
 
-        const acc: Account = {
-            accountNumber: String(this.lastAccountNumber++),
-            customerName,
-            accountType: type,
-            balance: initialBalance,
+        if (!customerName || !customerName.trim()) throw new Error("Customer name is required.");
+        if (!Object.values(ACCOUNT_TYPES).includes(accountType))
+            throw new Error(`Account type must be one of: ${Object.values(ACCOUNT_TYPES).join(", ")}`);
+        if (isNaN(initialDeposit) || initialDeposit < 0)
+            throw new Error("Initial deposit must be a non-negative number.");
+
+        const account: Account = {
+            accountNumber: uuidv4(),
+            customerName: customerName.trim(),
+            accountType,
+            balance: initialDeposit,
             isActive: true,
-            createdAt: new Date().toISOString(),
-            transactions: []
+            createdAt: new Date(),
+            transactions: [],
         };
 
-        if (initialBalance > 0) {
-            const txn: Transaction = {
-                id: this.generateTxnId(),
-                type: "deposit",
-                amount: initialBalance,
-                description: "Initial deposit",
-                timestamp: new Date().toISOString(),
-                balanceAfter: initialBalance
-            };
-            acc.transactions.push(txn);
-        }
+        await this.simulateDelay();
+        this.accounts.push(account);
 
-        this.accounts.push(acc);
-        return acc;
+        return this.sanitizeAccount(account);
     }
 
-    // DEPOSIT
-    deposit(accNo: string, amount: number) {
-        if (amount <= 0) throw new Error("Invalid amount");
+    // -------------------------
+    // GET ACCOUNT BY NUMBER
+    // -------------------------
+    async getAccountByNumber(accNo: string): Promise<ActiveAccount> {
+        if (!accNo) throw new Error("Account number is required.");
 
-        const acc = this.getAccount(accNo);
-        acc.balance += amount;
-
-        acc.transactions.push({
-            id: this.generateTxnId(),
-            type: "deposit",
-            amount,
-            description: "Amount deposited",
-            timestamp: new Date().toISOString(),
-            balanceAfter: acc.balance
-        });
-
-        return acc;
-    }
-
-    // WITHDRAW
-    withdraw(accNo: string, amount: number) {
-        if (amount <= 0) throw new Error("Invalid amount");
-
-        const acc = this.getAccount(accNo);
-        if (acc.balance < amount) throw new Error("Insufficient balance");
-
-        acc.balance -= amount;
-
-        acc.transactions.push({
-            id: this.generateTxnId(),
-            type: "withdraw",
-            amount,
-            description: "Amount withdrawn",
-            timestamp: new Date().toISOString(),
-            balanceAfter: acc.balance
-        });
-
-        return acc;
-    }
-
-    // TRANSFER
-    transfer(fromAcc: string, toAcc: string, amount: number) {
-        if (fromAcc === toAcc) throw new Error("Cannot transfer to same account");
-
-        this.withdraw(fromAcc, amount);
-        this.deposit(toAcc, amount);
-
-        return { message: "Transfer successful" };
-    }
-
-    // DELETE ACCOUNT (SOFT DELETE)
-    deleteAccount(accNo: string) {
-        const acc = this.getAccount(accNo);
-        acc.isActive = false;
-        return { message: "Account deactivated" };
-    }
-
-    // REACTIVATE ACCOUNT
-    reactivateAccount(accNo: string) {
+        await this.simulateDelay();
         const acc = this.accounts.find(a => a.accountNumber === accNo);
-        if (!acc) throw new Error("Account not found");
+        if (!acc) throw new Error("Account not found.");
 
-        acc.isActive = true;
-        return { message: "Account reactivated", acc };
+        return this.ensureActive(acc);
     }
 
-    // HARD DELETE ACCOUNT
-    closeAccountPermanently(accNo: string) {
-        const index = this.accounts.findIndex(a => a.accountNumber === accNo);
-        if (index === -1) throw new Error("Account not found");
+    // -------------------------
+    // SEARCH BY CUSTOMER NAME
+    // -------------------------
+    async getAccountsByCustomerName(name: string): Promise<SafeAccount[]> {
+        if (!name || !name.trim()) throw new Error("Customer name is required.");
 
-        const removed = this.accounts.splice(index, 1);
-        return { message: "Account permanently removed", removed };
+        await this.simulateDelay();
+        const search = name.toLowerCase();
+        const found = this.accounts
+            .filter(acc => acc.customerName.toLowerCase().includes(search) && acc.isActive)
+            .map(acc => this.sanitizeAccount(acc));
+
+        if (found.length === 0) throw new Error("No active accounts found with this name.");
+
+        return found;
     }
 
-    // UPDATE NAME
-    updateCustomerName(accNo: string, newName: string) {
-        const acc = this.getAccount(accNo);
-        acc.customerName = newName;
-        return acc;
+    // -------------------------
+    // DEPOSIT
+    // -------------------------
+    async deposit(accNo: string, amount: number, description = "Deposit") {
+        if (isNaN(amount) || amount <= 0) throw new Error("Deposit amount must be greater than 0.");
+
+        const acc = await this.getAccountByNumber(accNo);
+
+        await this.simulateDelay();
+        acc.balance = parseFloat((acc.balance + amount).toFixed(2)); // Fix floating point
+        this.recordTransaction(acc, TRANSACTION_TYPES.DEPOSIT, amount, description);
+
+        return { message: "Deposit successful.", balance: acc.balance };
     }
 
-    // SEARCH
-    search(query: string) {
-        return this.accounts.filter(
-            a =>
-                a.accountNumber === query ||
-                a.customerName.toLowerCase().includes(query.toLowerCase())
-        );
+    // -------------------------
+    // WITHDRAW
+    // -------------------------
+    async withdraw(accNo: string, amount: number, description = "Withdrawal") {
+        if (isNaN(amount) || amount <= 0) throw new Error("Withdrawal amount must be greater than 0.");
+
+        const acc = await this.getAccountByNumber(accNo);
+        if (acc.balance < amount) throw new Error("Insufficient balance.");
+
+        await this.simulateDelay();
+        acc.balance = parseFloat((acc.balance - amount).toFixed(2));
+        this.recordTransaction(acc, TRANSACTION_TYPES.WITHDRAW, amount, description);
+
+        return { message: "Withdrawal successful.", balance: acc.balance };
     }
 
-    // BALANCE
-    
-    getBalance(accNo: string) {
-        const acc = this.getAccount(accNo);
-        return acc.balance;
+    // -------------------------
+    // TRANSFER
+    // -------------------------
+    async transfer(from: string, to: string, amount: number) {
+        if (from === to) throw new Error("Cannot transfer to the same account.");
+        if (isNaN(amount) || amount <= 0) throw new Error("Transfer amount must be greater than 0.");
+
+        const fromAcc = await this.getAccountByNumber(from);
+        const toAcc = await this.getAccountByNumber(to);
+
+        if (fromAcc.balance < amount) throw new Error("Insufficient balance for transfer.");
+
+        await this.simulateDelay();
+
+        fromAcc.balance = parseFloat((fromAcc.balance - amount).toFixed(2));
+        toAcc.balance = parseFloat((toAcc.balance + amount).toFixed(2));
+
+        this.recordTransaction(fromAcc, TRANSACTION_TYPES.TRANSFER, amount, `Transferred to ${to}`);
+        this.recordTransaction(toAcc, TRANSACTION_TYPES.TRANSFER, amount, `Received from ${from}`);
+
+        return { message: "Transfer successful.", fromBalance: fromAcc.balance, toBalance: toAcc.balance };
     }
 
+    // -------------------------
+    // DELETE ACCOUNT (Soft Delete)
+    // -------------------------
+    async deleteAccount(accNo: string) {
+        const acc = await this.getAccountByNumber(accNo);
 
-    // TRANSACTIONS
+        await this.simulateDelay();
 
-    getTransactionHistory(accNo: string) {
-        const acc = this.getAccount(accNo);
-        return acc.transactions;
+        // Mark account as inactive
+        (acc as Account).isActive = false;
+
+        return { message: "Account successfully deleted." };
     }
 
- 
-    // LISTS
-    
-    listAllAccounts() {
-        return this.accounts;
+    // -------------------------
+    // HELPERS
+    // -------------------------
+    private recordTransaction(acc: ActiveAccount, type: TransactionType, amount: number, description: string) {
+        const txn: Transaction = {
+            id: `TXN-${uuidv4()}`,
+            type,
+            amount,
+            description,
+            timestamp: new Date(),
+            balanceAfter: acc.balance,
+        };
+        acc.transactions.push(txn);
     }
 
-    listActiveAccounts() {
-        return this.accounts.filter(a => a.isActive);
+    private sanitizeAccount(acc: Account): SafeAccount {
+        const { transactions, ...safe } = acc;
+        return safe;
     }
 
-    listInactiveAccounts() {
-        return this.accounts.filter(a => !a.isActive);
+    private async simulateDelay() {
+        return new Promise(res => setTimeout(res, 10));
     }
 }

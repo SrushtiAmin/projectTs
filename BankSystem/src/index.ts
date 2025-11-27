@@ -1,40 +1,60 @@
 import { BankSystem } from "./BankSystem";
+import { ACCOUNT_TYPES } from "./types";
 
-const bank = new BankSystem();
+async function main() {
+    try {
+        const bank = new BankSystem();
 
-// Create Accounts
-const acc1 = bank.createAccount("John Doe", "savings", 1000);
-const acc2 = bank.createAccount("Alice", "current", 500);
+        // Create Accounts
+        const acc1 = await bank.createAccount({
+            customerName: "John Doe",
+            accountType: ACCOUNT_TYPES.SAVINGS,
+            initialDeposit: 1000,
+        });
 
-// Deposit
-bank.deposit("1", 300);
+        const acc2 = await bank.createAccount({
+            customerName: "Alice",
+            accountType: ACCOUNT_TYPES.CURRENT,
+            initialDeposit: 500,
+        });
 
-// Withdraw
-bank.withdraw("2", 200);
+        console.log("Account 1:", acc1);
+        console.log("Account 2:", acc2);
 
-// Transfer
-bank.transfer("1", "2", 500);
+        // Store the UUIDs
+        const acc1No = acc1.accountNumber;
+        const acc2No = acc2.accountNumber;
 
-// Search
-console.log("Search John:", bank.search("John"));
-console.log("Search account 1:", bank.search("1"));
+        // Deposit
+        const d = await bank.deposit(acc1No, 300);
+        console.log("Deposit:", d);
 
-// Balance
-console.log("Balance of 1:", bank.getBalance("1"));
+        // Withdraw
+        const w = await bank.withdraw(acc2No, 200);
+        console.log("Withdraw:", w);
 
-// Transaction History
-console.log("Transactions of 1:", bank.getTransactionHistory("1"));
+        // Transfer
+        const t = await bank.transfer(acc1No, acc2No, 150);
+        console.log("Transfer:", t);
 
-// List Accounts
-console.log("All accounts:", bank.listAllAccounts());
-console.log("Active accounts:", bank.listActiveAccounts());
+        // Get account by number
+        const found = await bank.getAccountByNumber(acc1No);
+        console.log("Fetched Account:", found);
 
-// Update Name
-bank.updateCustomerName("1", "Johnathan Doe");
+        // Search by name
+        const search = await bank.getAccountsByCustomerName("John");
+        console.log("Search Results:", search);
 
-// Delete & Reactivate
-bank.deleteAccount("2");
-bank.reactivateAccount("2");
+        // Delete account
+        const del = await bank.deleteAccount(acc2No);
+        console.log("Delete:", del);
+    } catch (err: unknown) {
+        if (err instanceof Error) {
+            console.error("ERROR:", err.message);
+        } else {
+            console.error("Unknown Error:", err);
+        }
+    }
+}
 
-// Hard Delete (optional)
-bank.closeAccountPermanently("2");
+main();
