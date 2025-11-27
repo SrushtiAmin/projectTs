@@ -1,65 +1,40 @@
 import { BankSystem } from "./BankSystem";
-//async function 
-async function run() {
-    const bank = new BankSystem();
 
-    try {
-       
-        // CREATE ACCOUNTS
-     
-        console.log("=== CREATE ACCOUNTS ===");
-        const acc1 = await bank.createAccount("John Doe", "savings", 1500);
-        const acc2 = await bank.createAccount("Jane Smith", "current", 2000);
-        console.log("Created:", acc1);
-        console.log("Created:", acc2);
+const bank = new BankSystem();
 
-       
-        // DEPOSIT
-      
-        console.log("\n=== DEPOSIT ===");
-        const depositResult = await bank.deposit(acc1.accountNumber, 500, "Monthly savings");
-        console.log(depositResult);
+// Create Accounts
+const acc1 = bank.createAccount("John Doe", "savings", 1000);
+const acc2 = bank.createAccount("Alice", "current", 500);
 
-        // WITHDRAW
-      
-        console.log("\n=== WITHDRAW ===");
-        const withdrawResult = await bank.withdraw(acc2.accountNumber, 300, "ATM withdrawal");
-        console.log(withdrawResult);
+// Deposit
+bank.deposit("1", 300);
 
-     
-        // SEARCH ACCOUNTS
-    
-        console.log("\n=== SEARCH BY ACCOUNT NUMBER ===");
-        const searchByNumber = await bank.getAccountByNumber(acc1.accountNumber);
-        console.log(searchByNumber);
+// Withdraw
+bank.withdraw("2", 200);
 
-        console.log("\n=== SEARCH BY CUSTOMER NAME ===");
-        const searchByName = await bank.getAccountsByCustomerName("Jane");
-        console.log(searchByName);
+// Transfer
+bank.transfer("1", "2", 500);
 
+// Search
+console.log("Search John:", bank.search("John"));
+console.log("Search account 1:", bank.search("1"));
 
-        // TRANSFER MONEY
-   
-        console.log("\n=== TRANSFER MONEY ===");
-        const transferResult = await bank.transferMoney(acc1.accountNumber, acc2.accountNumber, 500);
-        console.log(transferResult);
+// Balance
+console.log("Balance of 1:", bank.getBalance("1"));
 
+// Transaction History
+console.log("Transactions of 1:", bank.getTransactionHistory("1"));
 
-        // DELETE ACCOUNT
-  
-        console.log("\n=== DELETE ACCOUNT ===");
-        const deleteResult = await bank.deleteAccount(acc1.accountNumber);
-        console.log(deleteResult);
+// List Accounts
+console.log("All accounts:", bank.listAllAccounts());
+console.log("Active accounts:", bank.listActiveAccounts());
 
-     
-        // TRY SEARCH DELETED ACCOUNT (validation)
+// Update Name
+bank.updateCustomerName("1", "Johnathan Doe");
 
-        console.log("\n=== SEARCH DELETED ACCOUNT ===");
-        await bank.getAccountByNumber(acc1.accountNumber);
+// Delete & Reactivate
+bank.deleteAccount("2");
+bank.reactivateAccount("2");
 
-    } catch (err: any) {
-        console.error("Error:", err.message);
-    }
-}
-
-run();
+// Hard Delete (optional)
+bank.closeAccountPermanently("2");

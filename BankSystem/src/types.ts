@@ -1,18 +1,20 @@
+export type AccountType = "savings" | "current";
+
 export interface Transaction {
     id: string;
     type: "deposit" | "withdraw" | "transfer";
     amount: number;
     description?: string;
-    timestamp: Date;
+    timestamp: string;
     balanceAfter: number;
 }
 
 export interface Account {
     accountNumber: string;
     customerName: string;
-    accountType: "savings" | "current";
+    accountType: AccountType;
     balance: number;
     isActive: boolean;
-    createdAt: Date;
+    createdAt: string;
     transactions: Transaction[];
 }
