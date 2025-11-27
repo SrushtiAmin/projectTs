@@ -13,17 +13,15 @@ import { v4 as uuidv4 } from "uuid";
 export class BankSystem {
     private accounts: Account[] = [];
 
-    // -------------------------
     // TYPE GUARD – Ensure account is active
-    // -------------------------
     private ensureActive(acc: Account): ActiveAccount {
         if (!acc.isActive) throw new Error("Account is deactivated.");
         return acc as ActiveAccount;
     }
 
-    // -------------------------
+    
     // CREATE ACCOUNT
-    // -------------------------
+    
     async createAccount(input: CreateAccountInput): Promise<SafeAccount> {
         const { customerName, accountType, initialDeposit } = input;
 
@@ -49,9 +47,9 @@ export class BankSystem {
         return this.sanitizeAccount(account);
     }
 
-    // -------------------------
+    
     // GET ACCOUNT BY NUMBER
-    // -------------------------
+    
     async getAccountByNumber(accNo: string): Promise<ActiveAccount> {
         if (!accNo) throw new Error("Account number is required.");
 
@@ -62,9 +60,9 @@ export class BankSystem {
         return this.ensureActive(acc);
     }
 
-    // -------------------------
+ 
     // SEARCH BY CUSTOMER NAME
-    // -------------------------
+    
     async getAccountsByCustomerName(name: string): Promise<SafeAccount[]> {
         if (!name || !name.trim()) throw new Error("Customer name is required.");
 
@@ -78,10 +76,8 @@ export class BankSystem {
 
         return found;
     }
-
-    // -------------------------
     // DEPOSIT
-    // -------------------------
+    
     async deposit(accNo: string, amount: number, description = "Deposit") {
         if (isNaN(amount) || amount <= 0) throw new Error("Deposit amount must be greater than 0.");
 
@@ -94,9 +90,9 @@ export class BankSystem {
         return { message: "Deposit successful.", balance: acc.balance };
     }
 
-    // -------------------------
+  
     // WITHDRAW
-    // -------------------------
+    
     async withdraw(accNo: string, amount: number, description = "Withdrawal") {
         if (isNaN(amount) || amount <= 0) throw new Error("Withdrawal amount must be greater than 0.");
 
@@ -110,9 +106,9 @@ export class BankSystem {
         return { message: "Withdrawal successful.", balance: acc.balance };
     }
 
-    // -------------------------
+    
     // TRANSFER
-    // -------------------------
+   
     async transfer(from: string, to: string, amount: number) {
         if (from === to) throw new Error("Cannot transfer to the same account.");
         if (isNaN(amount) || amount <= 0) throw new Error("Transfer amount must be greater than 0.");
@@ -133,9 +129,9 @@ export class BankSystem {
         return { message: "Transfer successful.", fromBalance: fromAcc.balance, toBalance: toAcc.balance };
     }
 
-    // -------------------------
+    
     // DELETE ACCOUNT (Soft Delete)
-    // -------------------------
+   
     async deleteAccount(accNo: string) {
         const acc = await this.getAccountByNumber(accNo);
 
@@ -147,9 +143,9 @@ export class BankSystem {
         return { message: "Account successfully deleted." };
     }
 
-    // -------------------------
+    
     // HELPERS
-    // -------------------------
+   
     private recordTransaction(acc: ActiveAccount, type: TransactionType, amount: number, description: string) {
         const txn: Transaction = {
             id: `TXN-${uuidv4()}`,
