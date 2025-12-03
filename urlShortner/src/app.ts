@@ -1,9 +1,14 @@
 import express from "express";
-import urlRoutes from "./routes/urlRoutes";
+import apiRoutes from "./routes/urlRoutes";
+import redirectRoutes from "./routes/redirectRoutes";
 
 const app = express();
 app.use(express.json());
 
-app.use("/api", urlRoutes);
+// API endpoints
+app.use("/api", apiRoutes);
+
+// Redirect route
+app.use("/", redirectRoutes);
 
 export default app;
