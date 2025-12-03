@@ -1,0 +1,11 @@
+[
+  {
+    "id": "mygoogle",
+    "originalUrl": "https://google.com",
+    "shortUrl": "http://localhost:5000/mygoogle",
+    "clicks": 0,
+    "isActive": true,
+    "expiresAt": "2025-12-31",
+    "createdAt": "2025-12-03T08:22:41.580Z"
+  }
+]
