@@ -8,6 +8,7 @@ import {
     ACCOUNT_TYPES,
     TRANSACTION_TYPES,
 } from "./types";
+
 import { v4 as uuidv4 } from "uuid";
 
 export class BankSystem {
